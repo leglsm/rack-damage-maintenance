@@ -35,6 +35,13 @@ const SPOTTER_DRAG_THRESHOLD_PX = 5;
 /** Hold this long without releasing → treat as drag (can move pin without a big twitch). */
 const SPOTTER_LONG_PRESS_MS = 450;
 
+/**
+ * `window.setTimeout` returns a numeric id in the browser, while merged Node typings use
+ * `ReturnType<typeof setTimeout>` as `NodeJS.Timeout`. Union matches both so the ref type
+ * matches the value you store from `window.setTimeout`.
+ */
+type LongPressTimerId = ReturnType<typeof setTimeout> | number;
+
 type Props = {
   floorPlan: FloorPlan;
   spotters: Spotter[];
@@ -89,7 +96,7 @@ export const MapStage = forwardRef<MapStageHandle, Props>(function MapStage(
     startY: number;
     moved: boolean;
     captureEl: HTMLElement;
-    longPressTimer: ReturnType<typeof setTimeout> | null;
+    longPressTimer: LongPressTimerId | null;
   } | null>(null);
 
   const onMarkerSelectRef = useRef(onMarkerSelect);
