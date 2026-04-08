@@ -21,6 +21,8 @@ export type IssueWithRelations = Issue & {
     id: string;
     location_id: string;
     location_name: string;
+    floor_plan_id: string;
+    floor_plan_name: string;
   } | null;
   photos: IssuePhoto[];
 };

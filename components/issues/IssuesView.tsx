@@ -12,6 +12,7 @@ import {
   priorityBadgeClass,
   statusBadgeClass,
 } from "@/components/issues/issue-utils";
+import { exportIssuesPdf } from "@/lib/export-issues-pdf";
 
 async function fetchIssuesWithRelations(
   supabase: SupabaseClient,
@@ -27,10 +28,42 @@ async function fetchIssuesWithRelations(
   const spotterIds = [...new Set(list.map((i) => i.spotter_id))];
   const { data: spotters, error: e2 } = await supabase
     .from("spotters")
-    .select("id, location_id, location_name")
+    .select("id, location_id, location_name, floor_plan_id")
     .in("id", spotterIds);
   if (e2) throw e2;
-  const sm = new Map((spotters ?? []).map((s) => [s.id, s]));
+  const planIds = [
+    ...new Set(
+      (spotters ?? [])
+        .map((s) => s.floor_plan_id as string)
+        .filter(Boolean),
+    ),
+  ];
+  const planNameById = new Map<string, string>();
+  if (planIds.length > 0) {
+    const { data: plans, error: ep } = await supabase
+      .from("floor_plans")
+      .select("id, name")
+      .in("id", planIds);
+    if (ep) throw ep;
+    for (const p of plans ?? []) {
+      planNameById.set(p.id as string, String(p.name ?? ""));
+    }
+  }
+  const sm = new Map(
+    (spotters ?? []).map((s) => {
+      const fpId = s.floor_plan_id as string;
+      return [
+        s.id,
+        {
+          id: s.id,
+          location_id: s.location_id,
+          location_name: s.location_name,
+          floor_plan_id: fpId,
+          floor_plan_name: planNameById.get(fpId) ?? "—",
+        },
+      ];
+    }),
+  );
 
   const issueIds = list.map((i) => i.id);
   const { data: photos, error: e3 } = await supabase
@@ -68,6 +101,7 @@ export function IssuesView() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailNonce, setDetailNonce] = useState(0);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -119,7 +153,31 @@ export function IssuesView() {
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
       <header className="shrink-0 border-b border-zinc-800 px-4 py-3">
-        <h1 className="text-lg font-semibold text-white">Issues</h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-lg font-semibold text-white">Issues</h1>
+          <button
+            type="button"
+            disabled={
+              loading || !!error || filtered.length === 0 || exportingPdf
+            }
+            className="shrink-0 rounded-lg border border-[#f57c20] bg-zinc-900 px-4 py-2 text-sm font-semibold text-[#f57c20] shadow-sm hover:bg-[#f57c20]/10 disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={() => {
+              setExportingPdf(true);
+              void exportIssuesPdf(filtered)
+                .catch((e: unknown) => {
+                  console.error(e);
+                  window.alert(
+                    e instanceof Error
+                      ? e.message
+                      : "PDF export failed. Check photos CORS or try again.",
+                  );
+                })
+                .finally(() => setExportingPdf(false));
+            }}
+          >
+            {exportingPdf ? "Exporting…" : "Export PDF"}
+          </button>
+        </div>
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <label className="min-w-[180px] flex-1">
             <span className="text-xs text-zinc-500">Search</span>
