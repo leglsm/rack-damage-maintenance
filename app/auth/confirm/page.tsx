@@ -23,7 +23,11 @@ export default function ConfirmPage() {
       return;
     }
 
-    const supabase = createClient();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
     supabase.auth.verifyOtp({ token_hash, type: type as any })
       .then(({ error }) => {
         if (error) {
@@ -44,7 +48,10 @@ export default function ConfirmPage() {
       return;
     }
     setLoading(true);
-    const supabase = createClient();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
       setError(error.message);
