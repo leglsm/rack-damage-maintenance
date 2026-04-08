@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Barlow } from "next/font/google";
-import { Sidebar } from "@/components/Sidebar";
+import { AppShell } from "@/components/AppShell";
+import { SupabaseProvider } from "@/components/supabase-provider";
+import { MissingSupabaseEnv, readSupabaseEnv } from "@/lib/env-check";
 import "./globals.css";
 
 const barlow = Barlow({
@@ -19,16 +21,23 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const env = readSupabaseEnv();
+
   return (
     <html lang="en" className={`${barlow.variable} h-full`} suppressHydrationWarning>
       <body
         className="flex min-h-full flex-col bg-[#1a1c1e] font-sans text-zinc-100 antialiased"
         suppressHydrationWarning
       >
-        <div className="flex min-h-0 min-w-0 flex-1 flex-row">
-          <Sidebar />
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
-        </div>
+        {!env ? (
+          <div className="flex min-h-full flex-1 items-center justify-center p-8">
+            <MissingSupabaseEnv />
+          </div>
+        ) : (
+          <SupabaseProvider url={env.url} anonKey={env.key}>
+            <AppShell>{children}</AppShell>
+          </SupabaseProvider>
+        )}
       </body>
     </html>
   );

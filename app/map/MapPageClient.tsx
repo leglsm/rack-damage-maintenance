@@ -1,7 +1,6 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { SupabaseProvider } from "@/components/supabase-provider";
 
 const MapView = dynamic(
   () =>
@@ -16,15 +15,6 @@ const MapView = dynamic(
   },
 );
 
-type Props = {
-  supabaseUrl: string;
-  supabaseAnonKey: string;
-};
-
-export function MapPageClient({ supabaseUrl, supabaseAnonKey }: Props) {
-  return (
-    <SupabaseProvider url={supabaseUrl} anonKey={supabaseAnonKey}>
-      <MapView />
-    </SupabaseProvider>
-  );
+export function MapPageClient() {
+  return <MapView />;
 }

@@ -1,12 +1,13 @@
 "use client";
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   createContext,
   useContext,
   useMemo,
   type ReactNode,
 } from "react";
+import { createBrowserSupabaseClient } from "@/lib/supabase-browser";
 
 const SupabaseContext = createContext<SupabaseClient | null>(null);
 
@@ -21,7 +22,7 @@ export function SupabaseProvider({ url, anonKey, children }: ProviderProps) {
     const u = url.trim();
     const k = anonKey.trim();
     if (!u || !k) return null;
-    return createClient(u, k);
+    return createBrowserSupabaseClient(u, k);
   }, [url, anonKey]);
 
   if (!client) {

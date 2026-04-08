@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useSupabase } from "@/components/supabase-provider";
 
 const navItems = [
   {
@@ -28,6 +30,25 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = useSupabase();
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!cancelled) setEmail(data.user?.email ?? null);
+    });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setEmail(session?.user?.email ?? null);
+    });
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-800 bg-[#141517]">
@@ -55,6 +76,23 @@ export function Sidebar() {
           );
         })}
       </nav>
+      <div className="border-t border-zinc-800 p-3">
+        <p className="truncate px-3 text-xs text-zinc-500" title={email ?? ""}>
+          {email ?? "—"}
+        </p>
+        <button
+          type="button"
+          className="mt-2 w-full rounded-lg border border-zinc-700 px-3 py-2 text-left text-sm font-medium text-zinc-300 hover:border-[#f57c20]/50 hover:text-[#f57c20]"
+          onClick={() => {
+            void supabase.auth.signOut().then(() => {
+              router.push("/login");
+              router.refresh();
+            });
+          }}
+        >
+          Sign Out
+        </button>
+      </div>
     </aside>
   );
 }
