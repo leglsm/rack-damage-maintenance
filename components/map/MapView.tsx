@@ -326,11 +326,6 @@ export function MapView() {
             setFloorPlan(plan);
             void loadSpotters(plan.id);
           }}
-          onDeleted={() => {
-            setSelectedSpotterId(null);
-            setPlacement(null);
-            void refreshFloorPlan();
-          }}
         />
       ) : null}
 

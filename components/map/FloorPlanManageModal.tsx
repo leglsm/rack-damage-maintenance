@@ -18,15 +18,16 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onSaved: (plan: FloorPlan) => void;
-  onDeleted: () => void;
 };
 
+/**
+ * Updates the existing `floor_plans` row by primary key only (UPDATE, never DELETE).
+ */
 export function FloorPlanManageModal({
   floorPlan,
   open,
   onClose,
   onSaved,
-  onDeleted,
 }: Props) {
   const supabase = useSupabase();
   const [name, setName] = useState(floorPlan.name);
@@ -35,7 +36,6 @@ export function FloorPlanManageModal({
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -80,7 +80,16 @@ export function FloorPlanManageModal({
 
     setSaving(true);
     try {
-      let imageUrl = floorPlan.image_url;
+      const patch: {
+        name: string;
+        grid_x: number;
+        grid_y: number;
+        image_url?: string;
+      } = {
+        name: name.trim(),
+        grid_x: gx,
+        grid_y: gy,
+      };
 
       if (file) {
         const ext = extFromFile(file);
@@ -92,22 +101,19 @@ export function FloorPlanManageModal({
         const {
           data: { publicUrl },
         } = supabase.storage.from("issue-photos").getPublicUrl(path);
-        imageUrl = publicUrl;
+        patch.image_url = publicUrl;
       }
 
       const { data: row, error: upRow } = await supabase
         .from("floor_plans")
-        .update({
-          name: name.trim(),
-          grid_x: gx,
-          grid_y: gy,
-          image_url: imageUrl,
-        })
+        .update(patch)
         .eq("id", floorPlan.id)
         .select()
         .single();
 
       if (upRow) throw upRow;
+      if (!row) throw new Error("Update returned no row.");
+
       onSaved(row as FloorPlan);
       setFile(null);
       setPreview((prev) => {
@@ -119,68 +125,6 @@ export function FloorPlanManageModal({
       setError(e instanceof Error ? e.message : "Save failed.");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const onDelete = async () => {
-    if (
-      !window.confirm(
-        "Delete this floor plan and ALL spotters and issues tied to it? This cannot be undone.",
-      )
-    )
-      return;
-
-    setDeleting(true);
-    setError(null);
-    try {
-      const { data: spotRows, error: sErr } = await supabase
-        .from("spotters")
-        .select("id")
-        .eq("floor_plan_id", floorPlan.id);
-      if (sErr) throw sErr;
-      const spotterIds = (spotRows ?? []).map((r) => r.id as string);
-
-      if (spotterIds.length > 0) {
-        const { data: issueRows, error: iErr } = await supabase
-          .from("issues")
-          .select("id")
-          .in("spotter_id", spotterIds);
-        if (iErr) throw iErr;
-        const issueIds = (issueRows ?? []).map((r) => r.id as string);
-
-        if (issueIds.length > 0) {
-          const { error: phErr } = await supabase
-            .from("issue_photos")
-            .delete()
-            .in("issue_id", issueIds);
-          if (phErr) throw phErr;
-
-          const { error: issErr } = await supabase
-            .from("issues")
-            .delete()
-            .in("id", issueIds);
-          if (issErr) throw issErr;
-        }
-
-        const { error: spErr } = await supabase
-          .from("spotters")
-          .delete()
-          .in("id", spotterIds);
-        if (spErr) throw spErr;
-      }
-
-      const { error: fpErr } = await supabase
-        .from("floor_plans")
-        .delete()
-        .eq("id", floorPlan.id);
-      if (fpErr) throw fpErr;
-
-      onDeleted();
-      onClose();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Delete failed.");
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -264,8 +208,8 @@ export function FloorPlanManageModal({
             Upload new floor plan image (optional)
           </span>
           <p className="mt-0.5 text-xs text-zinc-500">
-            Replaces the map image; existing pins and data stay unless you
-            change the grid size.
+            Replaces the map image only. Spotters and issues keep the same
+            floor plan record.
           </p>
           <input
             type="file"
@@ -290,7 +234,7 @@ export function FloorPlanManageModal({
         <div className="mt-6 flex flex-wrap gap-2">
           <button
             type="button"
-            disabled={saving || deleting}
+            disabled={saving}
             className="flex-1 rounded-lg bg-[#f57c20] px-4 py-2 text-sm font-semibold text-zinc-900 disabled:opacity-50"
             onClick={() => void onSave()}
           >
@@ -298,22 +242,11 @@ export function FloorPlanManageModal({
           </button>
           <button
             type="button"
-            disabled={saving || deleting}
+            disabled={saving}
             className="rounded-lg border border-zinc-600 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
             onClick={onClose}
           >
             Cancel
-          </button>
-        </div>
-
-        <div className="mt-6 border-t border-zinc-800 pt-4">
-          <button
-            type="button"
-            disabled={saving || deleting}
-            className="w-full rounded-lg border border-red-900/60 bg-red-950/30 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-950/50 disabled:opacity-50"
-            onClick={() => void onDelete()}
-          >
-            {deleting ? "Deleting…" : "Delete floor plan"}
           </button>
         </div>
       </div>
