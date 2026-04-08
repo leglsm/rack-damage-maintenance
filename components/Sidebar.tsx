@@ -51,7 +51,7 @@ export function Sidebar() {
   }, [supabase]);
 
   return (
-    <aside className="flex h-full min-h-0 w-64 shrink-0 flex-col border-r border-zinc-800 bg-[#141517]">
+    <aside className="flex h-full min-h-0 w-64 shrink-0 flex-col overflow-x-hidden border-r border-zinc-800 bg-[#141517]">
       <div className="shrink-0 border-b border-zinc-800 px-4 py-4">
         <span className="block text-sm font-semibold leading-snug tracking-tight text-white">
           Opmobility Greer Rack Maintenance
@@ -77,12 +77,14 @@ export function Sidebar() {
         })}
       </nav>
       <div className="mt-auto shrink-0 border-t border-zinc-800 p-3">
-        <p className="truncate px-1 text-xs text-zinc-500" title={email ?? ""}>
-          {email ?? "—"}
-        </p>
+        {email ? (
+          <p className="truncate px-1 text-xs text-zinc-500" title={email}>
+            {email}
+          </p>
+        ) : null}
         <button
           type="button"
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[#f57c20] bg-[#141517] py-2.5 text-sm font-semibold text-[#f57c20] hover:bg-[#f57c20]/10"
+          className={`flex w-full items-center justify-center gap-2 rounded-lg border border-[#f57c20] bg-[#141517] py-2.5 text-sm font-semibold text-[#f57c20] hover:bg-[#f57c20]/10 ${email ? "mt-3" : ""}`}
           onClick={() => {
             if (!window.confirm("Sign out?")) return;
             void supabase.auth.signOut().then(() => {
