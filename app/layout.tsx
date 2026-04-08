@@ -24,8 +24,10 @@ export default function RootLayout({
   const env = readSupabaseEnv();
 
   return (
-    <html lang="en" className={`${barlow.variable} h-full`} suppressHydrationWarning>
+    <html lang="en-US" className={`${barlow.variable} h-full`} suppressHydrationWarning>
       <body
+        lang="en-US"
+        translate="no"
         className="flex min-h-full flex-col bg-[#1a1c1e] font-sans text-zinc-100 antialiased"
         suppressHydrationWarning
       >

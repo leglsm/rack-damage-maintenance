@@ -86,7 +86,11 @@ export function FloorPlanUpload({ onCreated }: Props) {
   };
 
   return (
-    <div className="mx-auto flex max-w-lg flex-col gap-6 p-8">
+    <div
+      lang="en-US"
+      translate="no"
+      className="mx-auto flex max-w-lg flex-col gap-6 p-8"
+    >
       <div>
         <h1 className="text-2xl font-semibold text-white">Upload floor plan</h1>
         <p className="mt-1 text-sm text-zinc-400">

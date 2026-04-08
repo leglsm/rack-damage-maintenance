@@ -371,6 +371,10 @@ export function MapView() {
           onIssuesChanged={() => {
             void loadSpotterIssues(spotters.map((s) => s.id));
           }}
+          onSpotterDeleted={() => {
+            setSelectedSpotterId(null);
+            if (floorPlan) void loadSpotters(floorPlan.id);
+          }}
         />
       ) : null}
     </div>

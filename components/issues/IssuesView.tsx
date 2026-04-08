@@ -12,6 +12,7 @@ import {
   priorityBadgeClass,
   statusBadgeClass,
 } from "@/components/issues/issue-utils";
+import { formatDateTimeEnUS } from "@/lib/format-locale";
 import { exportIssuesPdf } from "@/lib/export-issues-pdf";
 
 async function fetchIssuesWithRelations(
@@ -303,7 +304,7 @@ export function IssuesView() {
                         </span>
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-zinc-500">
-                        {new Date(r.created_at).toLocaleString()}
+                        {formatDateTimeEnUS(r.created_at)}
                       </td>
                     </tr>
                   );

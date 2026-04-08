@@ -5,6 +5,7 @@ import { Line, Pie } from "react-chartjs-2";
 import { useSupabase } from "@/components/supabase-provider";
 import { registerChartJs } from "@/components/dashboard/register-charts";
 import { last12Months, monthKeyFromIso } from "@/lib/dashboard-time";
+import { formatNumberEnUS } from "@/lib/format-locale";
 
 registerChartJs();
 
@@ -280,7 +281,7 @@ export function DashboardView() {
         {label}
       </div>
       <div className="mt-1 text-3xl font-semibold tabular-nums text-[#f57c20]">
-        {loading ? "—" : value.toLocaleString()}
+        {loading ? "—" : formatNumberEnUS(value)}
       </div>
     </div>
   );

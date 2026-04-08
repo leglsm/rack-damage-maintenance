@@ -9,6 +9,11 @@ import {
   PRIORITIES,
   STATUSES,
 } from "@/components/map/issue-options";
+import {
+  ISSUE_PHOTOS_BUCKET,
+  storagePathFromPublicUrl,
+} from "@/components/issues/issue-utils";
+import { formatDateTimeEnUS } from "@/lib/format-locale";
 
 function priorityBadge(p: string) {
   switch (p) {
@@ -31,6 +36,8 @@ type Props = {
   onClose: () => void;
   /** Called after issues are created/updated from this panel so the map can refresh marker colors. */
   onIssuesChanged?: () => void;
+  /** Called after this spotter and its issues are deleted so the map can reload spotters. */
+  onSpotterDeleted?: () => void;
 };
 
 export function IssuePanel({
@@ -38,6 +45,7 @@ export function IssuePanel({
   components,
   onClose,
   onIssuesChanged,
+  onSpotterDeleted,
 }: Props) {
   const supabase = useSupabase();
   const [issues, setIssues] = useState<Issue[]>([]);
@@ -45,6 +53,7 @@ export function IssuePanel({
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingSpotter, setDeletingSpotter] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   const [componentName, setComponentName] = useState("");
@@ -197,6 +206,76 @@ export function IssuePanel({
     }
   };
 
+  const deleteSpotter = async () => {
+    if (
+      !window.confirm(
+        "Delete this spotter and ALL its issues? This cannot be undone.",
+      )
+    )
+      return;
+
+    setDeletingSpotter(true);
+    setFormError(null);
+    try {
+      const { data: issueRows, error: eIssues } = await supabase
+        .from("issues")
+        .select("id")
+        .eq("spotter_id", spotter.id);
+      if (eIssues) throw eIssues;
+      const issueIds = (issueRows ?? []).map((r) => r.id as string);
+
+      if (issueIds.length > 0) {
+        const { data: phRows, error: ePh } = await supabase
+          .from("issue_photos")
+          .select("photo_url")
+          .in("issue_id", issueIds);
+        if (ePh) throw ePh;
+
+        const paths: string[] = [];
+        for (const row of phRows ?? []) {
+          const path = storagePathFromPublicUrl(String(row.photo_url ?? ""));
+          if (path && path.startsWith("issues/")) paths.push(path);
+        }
+
+        if (paths.length > 0) {
+          const chunk = 100;
+          for (let i = 0; i < paths.length; i += chunk) {
+            const slice = paths.slice(i, i + chunk);
+            const { error: rmErr } = await supabase.storage
+              .from(ISSUE_PHOTOS_BUCKET)
+              .remove(slice);
+            if (rmErr) throw rmErr;
+          }
+        }
+
+        const { error: eDelPh } = await supabase
+          .from("issue_photos")
+          .delete()
+          .in("issue_id", issueIds);
+        if (eDelPh) throw eDelPh;
+
+        const { error: eDelIss } = await supabase
+          .from("issues")
+          .delete()
+          .eq("spotter_id", spotter.id);
+        if (eDelIss) throw eDelIss;
+      }
+
+      const { error: eDelSpot } = await supabase
+        .from("spotters")
+        .delete()
+        .eq("id", spotter.id);
+      if (eDelSpot) throw eDelSpot;
+
+      onSpotterDeleted?.();
+      onClose();
+    } catch (e: unknown) {
+      setFormError(e instanceof Error ? e.message : "Delete failed.");
+    } finally {
+      setDeletingSpotter(false);
+    }
+  };
+
   const inputCls =
     "mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm text-white outline-none focus:border-[#f57c20]";
   const labelCls = "block text-xs font-medium text-zinc-400";
@@ -212,15 +291,46 @@ export function IssuePanel({
             {spotter.location_name}
           </div>
         </div>
-        <button
-          type="button"
-          aria-label="Close panel"
-          className="rounded p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"
-          onClick={onClose}
-        >
-          ✕
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            disabled={deletingSpotter || saving}
+            className="flex items-center gap-1 rounded-md border border-[#e53935]/50 px-2 py-1 text-xs font-medium text-[#e53935] hover:bg-[#e53935]/10 disabled:opacity-40"
+            onClick={() => void deleteSpotter()}
+          >
+            <svg
+              className="h-3.5 w-3.5 shrink-0"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              aria-hidden
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+              />
+            </svg>
+            {deletingSpotter ? "…" : "Delete Spotter"}
+          </button>
+          <button
+            type="button"
+            aria-label="Close panel"
+            className="rounded p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+            onClick={onClose}
+          >
+            ✕
+          </button>
+        </div>
       </div>
+
+      {formError && !showForm ? (
+        <div className="shrink-0 border-b border-red-900/40 bg-red-950/25 px-4 py-2 text-sm text-red-300">
+          {formError}
+        </div>
+      ) : null}
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         <div className="mb-4 flex items-center justify-between gap-2">
@@ -277,7 +387,7 @@ export function IssuePanel({
                   ) : null}
                   {repaired && issue.repaired_at ? (
                     <p className="mt-1 text-xs text-emerald-400/90">
-                      Repaired {new Date(issue.repaired_at).toLocaleString()}
+                      Repaired {formatDateTimeEnUS(issue.repaired_at)}
                     </p>
                   ) : null}
                   {ph.length > 0 ? (

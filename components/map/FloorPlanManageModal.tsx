@@ -139,6 +139,8 @@ export function FloorPlanManageModal({
       }}
     >
       <div
+        lang="en-US"
+        translate="no"
         className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-zinc-700 bg-[#141517] p-6 shadow-2xl"
         role="dialog"
         aria-labelledby="floor-plan-manage-title"
