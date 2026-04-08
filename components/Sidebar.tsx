@@ -51,13 +51,13 @@ export function Sidebar() {
   }, [supabase]);
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-800 bg-[#141517]">
-      <div className="border-b border-zinc-800 px-4 py-4">
+    <aside className="flex h-full min-h-0 w-64 shrink-0 flex-col border-r border-zinc-800 bg-[#141517]">
+      <div className="shrink-0 border-b border-zinc-800 px-4 py-4">
         <span className="block text-sm font-semibold leading-snug tracking-tight text-white">
           Opmobility Greer Rack Maintenance
         </span>
       </div>
-      <nav className="flex flex-1 flex-col gap-1 p-3">
+      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
@@ -76,20 +76,36 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="border-t border-zinc-800 p-3">
-        <p className="truncate px-3 text-xs text-zinc-500" title={email ?? ""}>
+      <div className="mt-auto shrink-0 border-t border-zinc-800 p-3">
+        <p className="truncate px-1 text-xs text-zinc-500" title={email ?? ""}>
           {email ?? "—"}
         </p>
         <button
           type="button"
-          className="mt-2 w-full rounded-lg border border-zinc-700 px-3 py-2 text-left text-sm font-medium text-zinc-300 hover:border-[#f57c20]/50 hover:text-[#f57c20]"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[#f57c20] bg-[#141517] py-2.5 text-sm font-semibold text-[#f57c20] hover:bg-[#f57c20]/10"
           onClick={() => {
+            if (!window.confirm("Sign out?")) return;
             void supabase.auth.signOut().then(() => {
               router.push("/login");
               router.refresh();
             });
           }}
         >
+          <svg
+            className="h-5 w-5 shrink-0"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            aria-hidden
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"
+            />
+          </svg>
           Sign Out
         </button>
       </div>
