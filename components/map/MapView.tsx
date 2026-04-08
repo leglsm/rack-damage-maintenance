@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { locationIdFromGridCell } from "@/lib/grid-location";
 import type { IssueMarkerInput } from "@/lib/spotter-marker-appearance";
 import { useSupabase } from "@/components/supabase-provider";
+import { isAdmin } from "@/lib/auth";
 import type { Component, FloorPlan, Spotter } from "@/types";
+import { FloorPlanManageModal } from "@/components/map/FloorPlanManageModal";
 import { FloorPlanUpload } from "@/components/map/FloorPlanUpload";
 import { IssuePanel } from "@/components/map/IssuePanel";
 import { MapControls } from "@/components/map/MapControls";
@@ -46,6 +48,30 @@ export function MapView() {
   const [issuesBySpotterId, setIssuesBySpotterId] = useState<
     Record<string, IssueMarkerInput[]>
   >({});
+  const [authReady, setAuthReady] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [manageFloorPlanOpen, setManageFloorPlanOpen] = useState(false);
+
+  const userIsAdmin = isAdmin(userEmail);
+
+  useEffect(() => {
+    let cancelled = false;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!cancelled) {
+        setUserEmail(data.user?.email ?? null);
+        setAuthReady(true);
+      }
+    });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user?.email ?? null);
+    });
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   const loadSpotters = useCallback(async (planId: string) => {
     const { data, error } = await supabase
@@ -122,6 +148,10 @@ export function MapView() {
       const plan = (data as FloorPlan | null) ?? null;
       setFloorPlan(plan);
       if (plan) await loadSpotters(plan.id);
+      else {
+        setSpotters([]);
+        setIssuesBySpotterId({});
+      }
     } catch (e: unknown) {
       setLoadError(e instanceof Error ? e.message : "Failed to load data.");
     }
@@ -213,7 +243,7 @@ export function MapView() {
     ? spotters.find((s) => s.id === selectedSpotterId) ?? null
     : null;
 
-  if (!bootstrapped) {
+  if (!bootstrapped || !authReady) {
     return (
       <div className="flex flex-1 items-center justify-center text-zinc-500">
         Loading map…
@@ -240,6 +270,15 @@ export function MapView() {
   }
 
   if (!floorPlan) {
+    if (!userIsAdmin) {
+      return (
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center p-8 text-center">
+          <p className="max-w-md text-zinc-300">
+            No floor plan available. Contact your administrator.
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         <FloorPlanUpload
@@ -256,12 +295,44 @@ export function MapView() {
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
       <header className="shrink-0 border-b border-zinc-800 px-4 py-3">
-        <h1 className="text-lg font-semibold text-white">{floorPlan.name}</h1>
-        <p className="text-xs text-zinc-500">
-          Grid {floorPlan.grid_x} × {floorPlan.grid_y} ·{" "}
-          {mode === "MARK" ? "Mark mode: click map to place" : "View mode: drag to pan"}
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-semibold text-white">{floorPlan.name}</h1>
+            <p className="text-xs text-zinc-500">
+              Grid {floorPlan.grid_x} × {floorPlan.grid_y} ·{" "}
+              {mode === "MARK"
+                ? "Mark mode: click map to place"
+                : "View mode: drag to pan"}
+            </p>
+          </div>
+          {userIsAdmin ? (
+            <button
+              type="button"
+              className="shrink-0 rounded-lg border border-[#f57c20]/60 bg-[#f57c20]/10 px-3 py-2 text-sm font-semibold text-[#f57c20] hover:bg-[#f57c20]/20"
+              onClick={() => setManageFloorPlanOpen(true)}
+            >
+              Manage Floor Plan
+            </button>
+          ) : null}
+        </div>
       </header>
+
+      {userIsAdmin ? (
+        <FloorPlanManageModal
+          floorPlan={floorPlan}
+          open={manageFloorPlanOpen}
+          onClose={() => setManageFloorPlanOpen(false)}
+          onSaved={(plan) => {
+            setFloorPlan(plan);
+            void loadSpotters(plan.id);
+          }}
+          onDeleted={() => {
+            setSelectedSpotterId(null);
+            setPlacement(null);
+            void refreshFloorPlan();
+          }}
+        />
+      ) : null}
 
       <MapStage
         ref={stageRef}

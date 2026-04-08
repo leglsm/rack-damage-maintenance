@@ -1,0 +1,322 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { useSupabase } from "@/components/supabase-provider";
+import type { FloorPlan } from "@/types";
+
+function extFromFile(file: File): string {
+  const n = file.name.toLowerCase();
+  if (n.endsWith(".png")) return "png";
+  if (n.endsWith(".jpg") || n.endsWith(".jpeg")) return "jpg";
+  if (n.endsWith(".webp")) return "webp";
+  if (n.endsWith(".gif")) return "gif";
+  return "png";
+}
+
+type Props = {
+  floorPlan: FloorPlan;
+  open: boolean;
+  onClose: () => void;
+  onSaved: (plan: FloorPlan) => void;
+  onDeleted: () => void;
+};
+
+export function FloorPlanManageModal({
+  floorPlan,
+  open,
+  onClose,
+  onSaved,
+  onDeleted,
+}: Props) {
+  const supabase = useSupabase();
+  const [name, setName] = useState(floorPlan.name);
+  const [gridX, setGridX] = useState(floorPlan.grid_x);
+  const [gridY, setGridY] = useState(floorPlan.grid_y);
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setName(floorPlan.name);
+    setGridX(floorPlan.grid_x);
+    setGridY(floorPlan.grid_y);
+    setFile(null);
+    setPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setError(null);
+  }, [open, floorPlan]);
+
+  const setFileFromList = useCallback((f: File | null) => {
+    setFile(f);
+    setPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return f ? URL.createObjectURL(f) : null;
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+
+  const onSave = async () => {
+    setError(null);
+    if (!name.trim()) {
+      setError("Plan name is required.");
+      return;
+    }
+    const gx = Number(gridX);
+    const gy = Number(gridY);
+    if (!Number.isFinite(gx) || gx < 1 || !Number.isFinite(gy) || gy < 1) {
+      setError("Grid X and Grid Y must be at least 1.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      let imageUrl = floorPlan.image_url;
+
+      if (file) {
+        const ext = extFromFile(file);
+        const path = `floor-plans/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("issue-photos")
+          .upload(path, file, { cacheControl: "3600", upsert: false });
+        if (upErr) throw upErr;
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("issue-photos").getPublicUrl(path);
+        imageUrl = publicUrl;
+      }
+
+      const { data: row, error: upRow } = await supabase
+        .from("floor_plans")
+        .update({
+          name: name.trim(),
+          grid_x: gx,
+          grid_y: gy,
+          image_url: imageUrl,
+        })
+        .eq("id", floorPlan.id)
+        .select()
+        .single();
+
+      if (upRow) throw upRow;
+      onSaved(row as FloorPlan);
+      setFile(null);
+      setPreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      onClose();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Save failed.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onDelete = async () => {
+    if (
+      !window.confirm(
+        "Delete this floor plan and ALL spotters and issues tied to it? This cannot be undone.",
+      )
+    )
+      return;
+
+    setDeleting(true);
+    setError(null);
+    try {
+      const { data: spotRows, error: sErr } = await supabase
+        .from("spotters")
+        .select("id")
+        .eq("floor_plan_id", floorPlan.id);
+      if (sErr) throw sErr;
+      const spotterIds = (spotRows ?? []).map((r) => r.id as string);
+
+      if (spotterIds.length > 0) {
+        const { data: issueRows, error: iErr } = await supabase
+          .from("issues")
+          .select("id")
+          .in("spotter_id", spotterIds);
+        if (iErr) throw iErr;
+        const issueIds = (issueRows ?? []).map((r) => r.id as string);
+
+        if (issueIds.length > 0) {
+          const { error: phErr } = await supabase
+            .from("issue_photos")
+            .delete()
+            .in("issue_id", issueIds);
+          if (phErr) throw phErr;
+
+          const { error: issErr } = await supabase
+            .from("issues")
+            .delete()
+            .in("id", issueIds);
+          if (issErr) throw issErr;
+        }
+
+        const { error: spErr } = await supabase
+          .from("spotters")
+          .delete()
+          .in("id", spotterIds);
+        if (spErr) throw spErr;
+      }
+
+      const { error: fpErr } = await supabase
+        .from("floor_plans")
+        .delete()
+        .eq("id", floorPlan.id);
+      if (fpErr) throw fpErr;
+
+      onDeleted();
+      onClose();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Delete failed.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-zinc-700 bg-[#141517] p-6 shadow-2xl"
+        role="dialog"
+        aria-labelledby="floor-plan-manage-title"
+      >
+        <div className="flex items-start justify-between gap-2">
+          <h2
+            id="floor-plan-manage-title"
+            className="text-lg font-semibold text-white"
+          >
+            Manage floor plan
+          </h2>
+          <button
+            type="button"
+            className="rounded p-1 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+            aria-label="Close"
+            onClick={onClose}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="mt-4 rounded-lg border border-zinc-700/80 bg-zinc-900/40 p-3 text-sm text-zinc-300">
+          <p>
+            <span className="text-zinc-500">Current name:</span>{" "}
+            {floorPlan.name}
+          </p>
+          <p className="mt-1">
+            <span className="text-zinc-500">Grid:</span> {floorPlan.grid_x} ×{" "}
+            {floorPlan.grid_y}
+          </p>
+        </div>
+
+        <label className="mt-4 block">
+          <span className="text-sm font-medium text-zinc-300">Plan name</span>
+          <input
+            className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-[#f57c20]"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </label>
+
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-sm font-medium text-zinc-300">Grid X</span>
+            <input
+              type="number"
+              min={1}
+              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-[#f57c20]"
+              value={gridX}
+              onChange={(e) => setGridX(Number(e.target.value) || 1)}
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium text-zinc-300">Grid Y</span>
+            <input
+              type="number"
+              min={1}
+              className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-white outline-none focus:border-[#f57c20]"
+              value={gridY}
+              onChange={(e) => setGridY(Number(e.target.value) || 1)}
+            />
+          </label>
+        </div>
+
+        <div className="mt-4">
+          <span className="text-sm font-medium text-zinc-300">
+            Upload new floor plan image (optional)
+          </span>
+          <p className="mt-0.5 text-xs text-zinc-500">
+            Replaces the map image; existing pins and data stay unless you
+            change the grid size.
+          </p>
+          <input
+            type="file"
+            accept="image/*"
+            className="mt-2 block w-full text-sm text-zinc-400 file:mr-2 file:rounded file:border-0 file:bg-zinc-800 file:px-2 file:py-1 file:text-zinc-200"
+            onChange={(e) => setFileFromList(e.target.files?.[0] ?? null)}
+          />
+          {preview ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={preview}
+              alt="New preview"
+              className="mt-2 max-h-36 w-full object-contain"
+            />
+          ) : null}
+        </div>
+
+        {error ? (
+          <p className="mt-3 text-sm text-red-400">{error}</p>
+        ) : null}
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={saving || deleting}
+            className="flex-1 rounded-lg bg-[#f57c20] px-4 py-2 text-sm font-semibold text-zinc-900 disabled:opacity-50"
+            onClick={() => void onSave()}
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+          <button
+            type="button"
+            disabled={saving || deleting}
+            className="rounded-lg border border-zinc-600 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+        </div>
+
+        <div className="mt-6 border-t border-zinc-800 pt-4">
+          <button
+            type="button"
+            disabled={saving || deleting}
+            className="w-full rounded-lg border border-red-900/60 bg-red-950/30 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-950/50 disabled:opacity-50"
+            onClick={() => void onDelete()}
+          >
+            {deleting ? "Deleting…" : "Delete floor plan"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
