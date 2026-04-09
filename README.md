@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rack Damage Maintenance (Opmobility Greer)
 
-## Getting Started
+Web application for **warehouse rack damage reporting and maintenance**, built for **Opmobility Greer**. Staff can place issues on an interactive floor map, track status, view analytics, and export reports.
 
-First, run the development server:
+**Live site:** [https://rack-damage-maintenance.vercel.app](https://rack-damage-maintenance.vercel.app)
+
+## Features
+
+- **Interactive map** — Floor plan image with draggable “spotter” pins; grid-style location hints; long-press / controls for precise placement.
+- **Issues** — List and manage damage reports with photos, priority, and status (reported / in progress / repaired).
+- **Dashboard** — Charts for issues over time and breakdowns by priority, status, and component (Chart.js).
+- **PDF export** — Generate an issues summary PDF for sharing or records.
+- **Authentication** — Supabase Auth with email/password login and **invite flow** for new users (password setup via `/auth/confirm` with `token_hash`).
+- **Admin tools** — Configurable admin emails; upload / manage floor plan (non-admins see an appropriate empty state).
+- **Settings** — In-app preferences (e.g. display options).
+
+## Tech stack
+
+| Area | Choice |
+|------|--------|
+| Framework | [Next.js](https://nextjs.org) 16 (App Router), React 19 |
+| Language | TypeScript |
+| Styling | Tailwind CSS 4 |
+| Backend / Auth / DB | [Supabase](https://supabase.com) (`@supabase/ssr`, Row Level Security helpers in `supabase/`) |
+| Charts | Chart.js, react-chartjs-2 |
+| PDF / Canvas | jsPDF, html2canvas |
+| Deploy | [Vercel](https://vercel.com) |
+
+## Prerequisites
+
+- Node.js 20+ (recommended)
+- A Supabase project with Auth enabled and tables/storage configured for your environment
+
+## Environment variables
+
+Create `.env.local` in the project root (never commit this file; it is gitignored):
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Optional (comma-separated emails allowed to manage the floor plan):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+NEXT_PUBLIC_ADMIN_EMAILS=you@company.com
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Getting started
 
-## Learn More
+```bash
+npm install
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000). The home route redirects to `/map`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Other scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run build   # production build
+npm run start   # run production server locally
+npm run lint    # ESLint
+```
 
-## Deploy on Vercel
+## Repository layout (high level)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `app/` — App Router pages: map, issues, dashboard, settings, login, auth confirm (route groups for main shell vs auth-only layouts).
+- `components/` — UI including map, issues, dashboard, auth, and shell.
+- `lib/` — Supabase clients, auth helpers, PDF export, formatting utilities.
+- `supabase/` — SQL (e.g. RLS) and email template sources for the dashboard.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Email templates
+
+Invite and other auth emails are configured in the **Supabase Dashboard** (Authentication → Email Templates). The repo includes `supabase/email-templates/invite-user.html` as a copy-paste source for the **Invite user** body.
+
+## License
+
+This project is maintained for internal / partner use; rights belong to the project owner unless otherwise stated.
