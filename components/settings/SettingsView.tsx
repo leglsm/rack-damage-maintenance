@@ -229,8 +229,10 @@ export function SettingsView() {
         <h2 className="text-lg font-semibold text-white">About</h2>
         <dl className="mt-4 space-y-2 text-sm">
           <div className="flex justify-between gap-4 border-b border-zinc-700/50 py-2">
-            <dt className=" text-zinc-500">App name</dt>
-            <dd className="font-medium text-zinc-200">RackScan</dd>
+            <dt className=" shrink-0 text-zinc-500">App name</dt>
+            <dd className="max-w-[min(100%,20rem)] text-right font-medium leading-snug text-zinc-200">
+              Rack Damage Maintenance Web Application for Opmobility
+            </dd>
           </div>
           <div className="flex justify-between gap-4 py-2">
             <dt className="text-zinc-500">Version</dt>

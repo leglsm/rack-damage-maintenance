@@ -1,0 +1,19 @@
+<h2>You have been invited</h2>
+
+<p>
+  You have been invited to
+  <strong>Rack Damage Maintenance Web Application for Opmobility</strong>.
+</p>
+
+<p>Your account has been created. Use the link below to set your password:</p>
+
+<p>
+  <a
+    href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=invite"
+    >Set Your Password</a
+  >
+</p>
+
+<p>If the link does not work, copy and paste this URL into your browser:</p>
+
+<p>{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite</p>
