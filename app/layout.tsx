@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Barlow } from "next/font/google";
-import { AppShell } from "@/components/AppShell";
 import { SupabaseProvider } from "@/components/supabase-provider";
 import { MissingSupabaseEnv, readSupabaseEnv } from "@/lib/env-check";
 import "./globals.css";
@@ -37,7 +36,7 @@ export default function RootLayout({
           </div>
         ) : (
           <SupabaseProvider url={env.url} anonKey={env.key}>
-            <AppShell>{children}</AppShell>
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
           </SupabaseProvider>
         )}
       </body>

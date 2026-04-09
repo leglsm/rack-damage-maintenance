@@ -40,6 +40,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
+  /** Invite / email links use `/auth/confirm?token_hash=…` (no session yet); never gate behind login. */
   const isPublic =
     pathname === "/login" ||
     pathname === "/auth/confirm" ||
