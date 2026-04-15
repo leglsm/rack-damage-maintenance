@@ -325,6 +325,48 @@ export const MapStage = forwardRef<MapStageHandle, Props>(function MapStage(
               );
             })
           : null}
+        {/* Axis labels: same numbering as location_idFromGridCell (0-based X000…, Y000…) */}
+        <g
+          fill="rgba(15,23,42,0.88)"
+          stroke="rgba(255,255,255,0.75)"
+          strokeWidth={0.035}
+          paintOrder="stroke fill"
+          fontFamily="ui-monospace, monospace"
+          fontWeight="600"
+        >
+          {Array.from({ length: gx }, (_, col) => {
+            const xc = ((col + 0.5) / gx) * 100;
+            const label = `X${String(col).padStart(3, "0")}`;
+            return (
+              <text
+                key={`xlab-${col}`}
+                x={xc}
+                y={99.55}
+                fontSize={gx > 80 ? 0.62 : 0.72}
+                textAnchor="middle"
+                transform={`rotate(-68 ${xc} 99.55)`}
+              >
+                {label}
+              </text>
+            );
+          })}
+          {Array.from({ length: gy }, (_, row) => {
+            const yc = ((row + 0.5) / gy) * 100;
+            const label = `Y${String(row).padStart(3, "0")}`;
+            return (
+              <text
+                key={`ylab-${row}`}
+                x={0.45}
+                y={yc}
+                fontSize={gy > 80 ? 0.62 : 0.78}
+                dominantBaseline="middle"
+                textAnchor="start"
+              >
+                {label}
+              </text>
+            );
+          })}
+        </g>
       </svg>
     ) : null;
 
