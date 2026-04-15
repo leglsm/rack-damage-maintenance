@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useSupabase } from "@/components/supabase-provider";
 import type { Plant } from "@/types";
 import { setSelectedPlantIdClient } from "@/lib/selected-plant";
@@ -51,7 +50,6 @@ function PlantCard({
 
 export function PlantPickerView() {
   const supabase = useSupabase();
-  const router = useRouter();
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,9 +80,12 @@ export function PlantPickerView() {
   }, [load]);
 
   const onSelectPlant = (id: string) => {
-    setSelectedPlantIdClient(id);
-    router.push("/map");
-    router.refresh();
+    const clean = id.trim();
+    if (!clean) return;
+    setSelectedPlantIdClient(clean);
+    // Full navigation so the next request always includes the plant cookie
+    // (client router.push + refresh can race and skip the cookie on middleware).
+    window.location.assign("/map");
   };
 
   const onCreatePlant = async () => {

@@ -28,13 +28,19 @@ export function getSelectedPlantIdFromDocument(): string | null {
 
 export function setSelectedPlantIdClient(id: string): void {
   if (typeof window === "undefined") return;
+  const value = id.trim();
+  if (!value) return;
   try {
-    localStorage.setItem(SELECTED_PLANT_COOKIE, id);
+    localStorage.setItem(SELECTED_PLANT_COOKIE, value);
   } catch {
     /* ignore */
   }
   const maxAge = 60 * 60 * 24 * 400;
-  document.cookie = `${SELECTED_PLANT_COOKIE}=${encodeURIComponent(id)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  const secure =
+    typeof window !== "undefined" && window.location.protocol === "https:"
+      ? "; Secure"
+      : "";
+  document.cookie = `${SELECTED_PLANT_COOKIE}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
 }
 
 export function clearSelectedPlantClient(): void {
