@@ -9,9 +9,10 @@ import {
   getSelectedPlantIdFromDocument,
 } from "@/lib/selected-plant";
 
-const SIDEBAR_WIDTH_KEY = "rack_sidebar_width_px";
-const DEFAULT_SIDEBAR_WIDTH = 256;
-const MIN_SIDEBAR_WIDTH = 200;
+const SIDEBAR_WIDTH_KEY = "rack_sidebar_width_px_v2";
+/** Narrow default; drag handle can widen up to MAX. */
+const DEFAULT_SIDEBAR_WIDTH = 152;
+const MIN_SIDEBAR_WIDTH = 152;
 const MAX_SIDEBAR_WIDTH = 440;
 
 function clampSidebarWidth(n: number) {
@@ -176,8 +177,11 @@ export function Sidebar() {
           setResizing(true);
         }}
       />
-      <div className="shrink-0 border-b border-zinc-800 px-4 py-4">
-        <span className="block text-sm font-semibold leading-snug tracking-tight text-white">
+      <div className="shrink-0 border-b border-zinc-800 px-2.5 py-3">
+        <span
+          className="block truncate text-sm font-semibold leading-snug tracking-tight text-white"
+          title="Opmobility Rack Maintenance"
+        >
           Opmobility Rack Maintenance
         </span>
         {plantLabel ? (
@@ -186,26 +190,27 @@ export function Sidebar() {
           </span>
         ) : null}
       </div>
-      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
+      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-2">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              title={label}
+              className={`flex min-w-0 items-center gap-2 rounded-lg px-2 py-2.5 text-sm font-medium transition-colors ${
                 active
                   ? "bg-[#f57c20]/15 text-[#f57c20]"
                   : "text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-100"
               }`}
             >
               <Icon className="h-5 w-5 shrink-0 opacity-90" />
-              {label}
+              <span className="min-w-0 truncate">{label}</span>
             </Link>
           );
         })}
       </nav>
-      <div className="mt-auto shrink-0 border-t border-zinc-800 p-3">
+      <div className="mt-auto shrink-0 border-t border-zinc-800 p-2">
         {email ? (
           <p className="truncate px-1 text-xs text-zinc-500" title={email}>
             {email}
