@@ -80,11 +80,11 @@ export function MapControls({
           onClick={() => onDimFloorPlanChange(!dimFloorPlan)}
           title={
             dimFloorPlan
-              ? "Show floor plan at full clarity"
-              : "Soften floor plan so spotters stand out"
+              ? "Full sharp floor plan (spotters less emphasized)"
+              : "Dim floor plan so spotters stand out"
           }
         >
-          {dimFloorPlan ? "Crisp" : "Soft"}
+          {dimFloorPlan ? "Focus" : "Map"}
         </button>
       </div>
     </div>

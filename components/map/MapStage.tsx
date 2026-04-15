@@ -401,7 +401,7 @@ export const MapStage = forwardRef<MapStageHandle, Props>(function MapStage(
             alt={floorPlan.name}
             className={`relative z-0 block max-w-none select-none transition-[opacity,filter] duration-200 ${
               dimFloorPlan
-                ? "opacity-[0.4] blur-[0.55px] saturate-[0.82] contrast-[0.92]"
+                ? "opacity-[0.32] blur-[0.65px] saturate-[0.78] contrast-[0.9]"
                 : ""
             }`}
             draggable={false}

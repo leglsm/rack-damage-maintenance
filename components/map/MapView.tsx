@@ -32,8 +32,26 @@ export function MapView() {
   const [components, setComponents] = useState<Component[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [mode, setMode] = useState<MapMode>("VIEW");
-  /** Default on: softened floor so spotters read better on busy CAD (toggle shows "Crisp" to restore). */
+  /** Default on: dim floor so spotters read better (toggle: Focus / Map). */
   const [dimFloorPlan, setDimFloorPlan] = useState(true);
+
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem("rack_map_dim_floor_plan");
+      if (s === "0") setDimFloorPlan(false);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const setDimFloorPlanPersisted = useCallback((dim: boolean) => {
+    setDimFloorPlan(dim);
+    try {
+      localStorage.setItem("rack_map_dim_floor_plan", dim ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, []);
   const [transform, setTransform] = useState<Transform>({
     scale: 1,
     tx: 0,
@@ -393,7 +411,7 @@ export function MapView() {
         mode={mode}
         onModeChange={setMode}
         dimFloorPlan={dimFloorPlan}
-        onDimFloorPlanChange={setDimFloorPlan}
+        onDimFloorPlanChange={setDimFloorPlanPersisted}
         onZoomIn={() => zoomAroundViewportCenter(1.15)}
         onZoomOut={() => zoomAroundViewportCenter(1 / 1.15)}
         onFit={() => stageRef.current?.fitToView()}
