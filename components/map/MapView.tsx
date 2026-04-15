@@ -32,7 +32,8 @@ export function MapView() {
   const [components, setComponents] = useState<Component[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [mode, setMode] = useState<MapMode>("VIEW");
-  const [dimFloorPlan, setDimFloorPlan] = useState(false);
+  /** Default on: softened floor so spotters read better on busy CAD (toggle shows "Crisp" to restore). */
+  const [dimFloorPlan, setDimFloorPlan] = useState(true);
   const [transform, setTransform] = useState<Transform>({
     scale: 1,
     tx: 0,
