@@ -2,12 +2,21 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSupabase } from "@/components/supabase-provider";
 import {
   clearSelectedPlantClient,
   getSelectedPlantIdFromDocument,
 } from "@/lib/selected-plant";
+
+const SIDEBAR_WIDTH_KEY = "rack_sidebar_width_px";
+const DEFAULT_SIDEBAR_WIDTH = 256;
+const MIN_SIDEBAR_WIDTH = 200;
+const MAX_SIDEBAR_WIDTH = 440;
+
+function clampSidebarWidth(n: number) {
+  return Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, n));
+}
 
 const navItems = [
   {
@@ -43,6 +52,67 @@ export function Sidebar() {
   const supabase = useSupabase();
   const [email, setEmail] = useState<string | null>(null);
   const [plantLabel, setPlantLabel] = useState<string | null>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
+  const [resizing, setResizing] = useState(false);
+  const sidebarWidthRef = useRef(DEFAULT_SIDEBAR_WIDTH);
+  const dragSessionRef = useRef({ sx: 0, sw: 0, pointerId: 0 });
+
+  useEffect(() => {
+    sidebarWidthRef.current = sidebarWidth;
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+      if (raw) {
+        const n = Number.parseInt(raw, 10);
+        if (Number.isFinite(n)) {
+          const w = clampSidebarWidth(n);
+          setSidebarWidth(w);
+          sidebarWidthRef.current = w;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!resizing) return;
+    const sess = dragSessionRef.current;
+    const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== sess.pointerId) return;
+      ev.preventDefault();
+      const next = clampSidebarWidth(sess.sw + ev.clientX - sess.sx);
+      setSidebarWidth(next);
+    };
+    const onEnd = (ev: PointerEvent) => {
+      if (ev.pointerId !== sess.pointerId) return;
+      const final = clampSidebarWidth(sess.sw + ev.clientX - sess.sx);
+      setSidebarWidth(final);
+      sidebarWidthRef.current = final;
+      try {
+        localStorage.setItem(SIDEBAR_WIDTH_KEY, String(final));
+      } catch {
+        /* ignore */
+      }
+      setResizing(false);
+      document.body.style.removeProperty("cursor");
+      document.body.style.removeProperty("user-select");
+    };
+    document.body.style.cursor = "ew-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onEnd);
+    window.addEventListener("pointercancel", onEnd);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+      document.body.style.removeProperty("cursor");
+      document.body.style.removeProperty("user-select");
+    };
+  }, [resizing]);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,7 +156,26 @@ export function Sidebar() {
   }, [supabase, pathname]);
 
   return (
-    <aside className="flex h-full min-h-0 w-64 shrink-0 flex-col overflow-x-hidden border-r border-zinc-800 bg-[#141517]">
+    <aside
+      className="relative flex h-full min-h-0 shrink-0 flex-col overflow-x-hidden border-r border-zinc-800 bg-[#141517]"
+      style={{ width: sidebarWidth }}
+    >
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize sidebar"
+        title="Drag to resize sidebar"
+        className={`absolute right-0 top-0 z-30 h-full w-3 translate-x-1/2 cursor-ew-resize touch-none hover:bg-zinc-500/25 ${resizing ? "bg-zinc-500/35" : ""}`}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          dragSessionRef.current = {
+            sx: e.clientX,
+            sw: sidebarWidthRef.current,
+            pointerId: e.pointerId,
+          };
+          setResizing(true);
+        }}
+      />
       <div className="shrink-0 border-b border-zinc-800 px-4 py-4">
         <span className="block text-sm font-semibold leading-snug tracking-tight text-white">
           Opmobility Rack Maintenance
