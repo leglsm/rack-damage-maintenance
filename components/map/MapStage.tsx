@@ -46,6 +46,8 @@ type Props = {
   floorPlan: FloorPlan;
   spotters: Spotter[];
   issuesBySpotterId: Record<string, IssueMarkerInput[]>;
+  /** Fade / soften the floor image so markers read better on busy drawings */
+  dimFloorPlan: boolean;
   mode: MapMode;
   transform: Transform;
   onTransform: (t: Transform) => void;
@@ -62,6 +64,7 @@ export const MapStage = forwardRef<MapStageHandle, Props>(function MapStage(
     floorPlan,
     spotters,
     issuesBySpotterId,
+    dimFloorPlan,
     mode,
     transform,
     onTransform,
@@ -283,41 +286,45 @@ export const MapStage = forwardRef<MapStageHandle, Props>(function MapStage(
           pointerEvents: "none",
         }}
       >
-        <g
-          stroke="rgba(255,255,255,0.15)"
-          strokeWidth={0.5}
-        >
-          {gx > 1
-            ? Array.from({ length: gx - 1 }, (_, idx) => {
-                const i = idx + 1;
-                const x = `${(i / gx) * 100}%`;
-                return (
-                  <line
-                    key={`v-${i}`}
-                    x1={x}
-                    y1="0%"
-                    x2={x}
-                    y2="100%"
-                  />
-                );
-              })
-            : null}
-          {gy > 1
-            ? Array.from({ length: gy - 1 }, (_, idx) => {
-                const i = idx + 1;
-                const y = `${(i / gy) * 100}%`;
-                return (
-                  <line
-                    key={`h-${i}`}
-                    x1="0%"
-                    y1={y}
-                    x2="100%"
-                    y2={y}
-                  />
-                );
-              })
-            : null}
-        </g>
+        {/* Visible on light CAD: slate + accent majors; old white strokes vanished on white paper */}
+        {gx > 1
+          ? Array.from({ length: gx - 1 }, (_, idx) => {
+              const i = idx + 1;
+              const x = (i / gx) * 100;
+              const major = i % 10 === 0;
+              return (
+                <line
+                  key={`v-${i}`}
+                  x1={x}
+                  y1={0}
+                  x2={x}
+                  y2={100}
+                  stroke={major ? "rgba(245,124,32,0.55)" : "rgba(15,23,42,0.28)"}
+                  strokeWidth={major ? 0.14 : 0.07}
+                  vectorEffect="nonScalingStroke"
+                />
+              );
+            })
+          : null}
+        {gy > 1
+          ? Array.from({ length: gy - 1 }, (_, idx) => {
+              const i = idx + 1;
+              const y = (i / gy) * 100;
+              const major = i % 10 === 0;
+              return (
+                <line
+                  key={`h-${i}`}
+                  x1={0}
+                  y1={y}
+                  x2={100}
+                  y2={y}
+                  stroke={major ? "rgba(245,124,32,0.55)" : "rgba(15,23,42,0.28)"}
+                  strokeWidth={major ? 0.14 : 0.07}
+                  vectorEffect="nonScalingStroke"
+                />
+              );
+            })
+          : null}
       </svg>
     ) : null;
 
@@ -350,7 +357,11 @@ export const MapStage = forwardRef<MapStageHandle, Props>(function MapStage(
             ref={imgRef}
             src={floorPlan.image_url}
             alt={floorPlan.name}
-            className="relative z-0 block max-w-none select-none"
+            className={`relative z-0 block max-w-none select-none transition-[opacity,filter] duration-200 ${
+              dimFloorPlan
+                ? "opacity-[0.4] blur-[0.55px] saturate-[0.82] contrast-[0.92]"
+                : ""
+            }`}
             draggable={false}
             onLoad={(e) => {
               const el = e.currentTarget;
@@ -370,7 +381,7 @@ export const MapStage = forwardRef<MapStageHandle, Props>(function MapStage(
                 key={s.id}
                 type="button"
                 data-spotter-marker
-                className="absolute z-10 flex min-h-[52px] min-w-[52px] -translate-x-1/2 -translate-y-full flex-col items-center justify-end bg-transparent p-0 outline-none touch-manipulation"
+                className="absolute z-10 flex min-h-[52px] min-w-[52px] -translate-x-1/2 -translate-y-full flex-col items-center justify-end bg-transparent p-0 outline-none touch-manipulation [filter:drop-shadow(0_0_6px_rgba(0,0,0,0.65))]"
                 style={{ left: `${px * 100}%`, top: `${py * 100}%` }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -412,12 +423,15 @@ export const MapStage = forwardRef<MapStageHandle, Props>(function MapStage(
                   {s.location_id}
                 </span>
                 <span
-                  className="h-0 w-0 border-solid border-x-[7px] border-b-[12px] border-x-transparent"
+                  className="h-0 w-0 border-solid border-x-[7px] border-b-[12px] border-x-transparent [filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.5))]"
                   style={{ borderBottomColor: appearance.triangle }}
                 />
                 <span
-                  className="-mt-px h-3 w-3 rounded-full border-2 border-white shadow-md"
-                  style={{ backgroundColor: appearance.pin }}
+                  className="spotter-marker-pin -mt-px h-3.5 w-3.5 rounded-full border-2 border-white shadow-md"
+                  style={{
+                    backgroundColor: appearance.pin,
+                    boxShadow: `0 0 0 1px rgba(0,0,0,0.35), 0 0 10px 3px ${appearance.pin}, 0 0 18px 5px rgba(245,124,32,0.35)`,
+                  }}
                 />
               </button>
             );

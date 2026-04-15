@@ -32,6 +32,7 @@ export function MapView() {
   const [components, setComponents] = useState<Component[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [mode, setMode] = useState<MapMode>("VIEW");
+  const [dimFloorPlan, setDimFloorPlan] = useState(false);
   const [transform, setTransform] = useState<Transform>({
     scale: 1,
     tx: 0,
@@ -375,6 +376,7 @@ export function MapView() {
         floorPlan={floorPlan}
         spotters={spotters}
         issuesBySpotterId={issuesBySpotterId}
+        dimFloorPlan={dimFloorPlan}
         mode={mode}
         transform={transform}
         onTransform={setTransform}
@@ -389,6 +391,8 @@ export function MapView() {
       <MapControls
         mode={mode}
         onModeChange={setMode}
+        dimFloorPlan={dimFloorPlan}
+        onDimFloorPlanChange={setDimFloorPlan}
         onZoomIn={() => zoomAroundViewportCenter(1.15)}
         onZoomOut={() => zoomAroundViewportCenter(1 / 1.15)}
         onFit={() => stageRef.current?.fitToView()}

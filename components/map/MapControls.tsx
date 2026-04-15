@@ -5,6 +5,8 @@ type MapMode = "MARK" | "VIEW";
 type Props = {
   mode: MapMode;
   onModeChange: (m: MapMode) => void;
+  dimFloorPlan: boolean;
+  onDimFloorPlanChange: (dim: boolean) => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
   onFit: () => void;
@@ -15,6 +17,8 @@ type Props = {
 export function MapControls({
   mode,
   onModeChange,
+  dimFloorPlan,
+  onDimFloorPlanChange,
   onZoomIn,
   onZoomOut,
   onFit,
@@ -65,6 +69,22 @@ export function MapControls({
           title="Toggle mark / view mode"
         >
           {mode === "MARK" ? "MARK" : "VIEW"}
+        </button>
+        <button
+          type="button"
+          className={`${btn} w-auto px-2.5 text-[10px] font-bold leading-tight ${
+            dimFloorPlan
+              ? "border-sky-500/70 bg-sky-500/15 text-sky-200"
+              : ""
+          }`}
+          onClick={() => onDimFloorPlanChange(!dimFloorPlan)}
+          title={
+            dimFloorPlan
+              ? "Show floor plan at full clarity"
+              : "Soften floor plan so spotters stand out"
+          }
+        >
+          {dimFloorPlan ? "Crisp" : "Soft"}
         </button>
       </div>
     </div>

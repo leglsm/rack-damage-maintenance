@@ -17,3 +17,19 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Map spotter pins: subtle 1s pulse so pins stay noticeable on busy CAD plans */
+@keyframes spotter-pin-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.78;
+  }
+}
+
+.spotter-marker-pin {
+  animation: spotter-pin-blink 1s ease-in-out infinite;
+  transform-origin: center center;
+}
