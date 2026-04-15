@@ -68,6 +68,15 @@ npm run db:schema-dump
 
 Writes **`supabase/snapshots/schema-remote.sql`** (gitignored by default). You may be prompted for the **database password** again. Open the file and paste **sanitized excerpts** into chat when you want help refactoring against the real DB shape.
 
+**Docker Desktop is required.** The Supabase CLI runs `pg_dump` inside a Postgres container. If you see `docker_engine` / `Docker Desktop is a prerequisite`, install and **start** [Docker Desktop](https://docs.docker.com/desktop/), then run `npm run db:schema-dump` again.
+
+**Without Docker:** install [PostgreSQL client tools](https://www.postgresql.org/download/windows/) so `pg_dump` is on your `PATH`, then use the **URI** from Supabase → **Settings → Database** (Connection string). Special characters in the password must be [URL-encoded](https://developer.mozilla.org/en-US/docs/Glossary/Percent-encoding).
+
+```bash
+# Example (replace HOST, PASSWORD — use URI form from the dashboard when possible)
+pg_dump "postgresql://postgres:PASSWORD@db.YOUR_PROJECT_REF.supabase.co:5432/postgres" --schema-only --no-owner --no-acl -f supabase/snapshots/schema-remote.sql
+```
+
 To **version** that file for your team, remove the `snapshots/schema-remote.sql` line from **`supabase/.gitignore`**.
 
 Change **`project ref`** in `package.json` (`db:link` script) if you use a different Supabase project.
