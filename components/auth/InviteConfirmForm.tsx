@@ -121,7 +121,7 @@ export function InviteConfirmForm() {
         setSubmitError(error.message);
         return;
       }
-      router.push("/map");
+      router.push("/plants");
       router.refresh();
     } finally {
       setSubmitting(false);

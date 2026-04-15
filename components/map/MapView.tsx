@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { locationIdFromGridCell } from "@/lib/grid-location";
+import { getSelectedPlantIdFromDocument } from "@/lib/selected-plant";
 import type { IssueMarkerInput } from "@/lib/spotter-marker-appearance";
 import { useSupabase } from "@/components/supabase-provider";
 import { isAdmin } from "@/lib/auth";
@@ -137,12 +139,24 @@ export function MapView() {
 
   const refreshFloorPlan = useCallback(async () => {
     setLoadError(null);
+    const plantId = getSelectedPlantIdFromDocument();
+    if (!plantId) {
+      setFloorPlan(null);
+      setSpotters([]);
+      setIssuesBySpotterId({});
+      setBootstrapped(true);
+      try {
+        await loadComponents();
+      } catch {
+        /* Issue panel can show empty components */
+      }
+      return;
+    }
     try {
       const { data, error } = await supabase
         .from("floor_plans")
         .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1)
+        .eq("plant_id", plantId)
         .maybeSingle();
       if (error) throw error;
       const plan = (data as FloorPlan | null) ?? null;
@@ -251,6 +265,24 @@ export function MapView() {
     );
   }
 
+  const selectedPlantId = getSelectedPlantIdFromDocument();
+
+  if (!selectedPlantId) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
+        <p className="max-w-md text-zinc-300">
+          No plant selected. Choose a plant to load the map.
+        </p>
+        <Link
+          href="/plants"
+          className="rounded-lg bg-[#f57c20] px-4 py-2.5 text-sm font-semibold text-zinc-900 hover:opacity-95"
+        >
+          Choose plant
+        </Link>
+      </div>
+    );
+  }
+
   if (loadError && !floorPlan) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8">
@@ -274,7 +306,7 @@ export function MapView() {
       return (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center p-8 text-center">
           <p className="max-w-md text-zinc-300">
-            No floor plan available. Contact your administrator.
+            No floor plan for this plant yet. Contact your administrator.
           </p>
         </div>
       );
@@ -282,6 +314,7 @@ export function MapView() {
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         <FloorPlanUpload
+          plantId={selectedPlantId}
           onCreated={(plan) => {
             setFloorPlan(plan);
             void loadSpotters(plan.id);
@@ -305,15 +338,23 @@ export function MapView() {
                 : "View mode: drag to pan"}
             </p>
           </div>
-          {userIsAdmin ? (
-            <button
-              type="button"
-              className="shrink-0 rounded-lg border border-[#f57c20]/60 bg-[#f57c20]/10 px-3 py-2 text-sm font-semibold text-[#f57c20] hover:bg-[#f57c20]/20"
-              onClick={() => setManageFloorPlanOpen(true)}
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/plants"
+              className="shrink-0 rounded-lg border border-zinc-600 px-3 py-2 text-sm font-medium text-zinc-200 hover:bg-zinc-800"
             >
-              Manage Floor Plan
-            </button>
-          ) : null}
+              Change plant
+            </Link>
+            {userIsAdmin ? (
+              <button
+                type="button"
+                className="shrink-0 rounded-lg border border-[#f57c20]/60 bg-[#f57c20]/10 px-3 py-2 text-sm font-semibold text-[#f57c20] hover:bg-[#f57c20]/20"
+                onClick={() => setManageFloorPlanOpen(true)}
+              >
+                Manage Floor Plan
+              </button>
+            ) : null}
+          </div>
         </div>
       </header>
 

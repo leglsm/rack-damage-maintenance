@@ -1,9 +1,16 @@
+export type Plant = {
+  id: string;
+  name: string;
+  created_at: string;
+};
+
 export type FloorPlan = {
   id: string;
   name: string;
   image_url: string;
   grid_x: number;
   grid_y: number;
+  plant_id: string;
   created_at: string;
 };
 

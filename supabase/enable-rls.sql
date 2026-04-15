@@ -1,6 +1,9 @@
 -- Run in Supabase Dashboard → SQL Editor.
 -- Enables RLS and adds permissive policies for anon + authenticated (browser client with anon key).
 -- Replace policies later with auth-scoped rules (e.g. org_id, user_id) before production.
+--
+-- public.plants: created + RLS in supabase/migrations/20260414120000_plants_one_floor_plan_per_plant.sql
+-- (Do not reference plants here — that script must run first on a fresh DB.)
 
 -- floor_plans
 ALTER TABLE public.floor_plans ENABLE ROW LEVEL SECURITY;

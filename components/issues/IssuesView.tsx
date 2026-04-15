@@ -14,13 +14,31 @@ import {
 } from "@/components/issues/issue-utils";
 import { formatDateTimeEnUS } from "@/lib/format-locale";
 import { exportIssuesPdf } from "@/lib/export-issues-pdf";
+import {
+  getFloorPlanIdForPlant,
+  getSelectedPlantIdFromDocument,
+} from "@/lib/selected-plant";
 
 async function fetchIssuesWithRelations(
   supabase: SupabaseClient,
+  floorPlanId: string | null,
 ): Promise<IssueWithRelations[]> {
+  if (!floorPlanId) return [];
+
+  const { data: spotterRows, error: es } = await supabase
+    .from("spotters")
+    .select("id")
+    .eq("floor_plan_id", floorPlanId);
+  if (es) throw es;
+  const allowedSpotterIds = new Set(
+    (spotterRows ?? []).map((r) => r.id as string),
+  );
+  if (allowedSpotterIds.size === 0) return [];
+
   const { data: issues, error: e1 } = await supabase
     .from("issues")
     .select("*")
+    .in("spotter_id", [...allowedSpotterIds])
     .order("created_at", { ascending: false });
   if (e1) throw e1;
   const list = (issues ?? []) as Issue[];
@@ -108,8 +126,12 @@ export function IssuesView() {
     setError(null);
     setLoading(true);
     try {
+      const plantId = getSelectedPlantIdFromDocument();
+      const floorPlanId = plantId
+        ? await getFloorPlanIdForPlant(supabase, plantId)
+        : null;
       const [issueData, compData] = await Promise.all([
-        fetchIssuesWithRelations(supabase),
+        fetchIssuesWithRelations(supabase, floorPlanId),
         supabase
           .from("components")
           .select("*")

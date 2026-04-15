@@ -5,6 +5,7 @@ import { useSupabase } from "@/components/supabase-provider";
 import type { FloorPlan } from "@/types";
 
 type Props = {
+  plantId: string;
   onCreated: (plan: FloorPlan) => void;
 };
 
@@ -17,7 +18,7 @@ function extFromFile(file: File): string {
   return "png";
 }
 
-export function FloorPlanUpload({ onCreated }: Props) {
+export function FloorPlanUpload({ plantId, onCreated }: Props) {
   const supabase = useSupabase();
   const [planName, setPlanName] = useState("");
   const [gridX, setGridX] = useState(100);
@@ -72,6 +73,7 @@ export function FloorPlanUpload({ onCreated }: Props) {
           image_url: publicUrl,
           grid_x: gridX,
           grid_y: gridY,
+          plant_id: plantId,
         })
         .select()
         .single();

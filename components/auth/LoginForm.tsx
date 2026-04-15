@@ -25,7 +25,7 @@ export function LoginForm() {
         setError(signErr.message || "Invalid email or password.");
         return;
       }
-      router.push("/map");
+      router.push("/plants");
       router.refresh();
     } finally {
       setLoading(false);

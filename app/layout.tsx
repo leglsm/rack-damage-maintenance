@@ -11,7 +11,7 @@ const barlow = Barlow({
 });
 
 export const metadata: Metadata = {
-  title: "Opmobility Greer Rack Maintenance",
+  title: "Opmobility Rack Maintenance",
   description: "Rack damage maintenance and floor plan scanning",
 };
 

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { readSelectedPlantIdFromRequestCookies } from "@/lib/selected-plant";
 
 /**
  * Refreshes Auth session + cookie jar. Gate routes after `getUser()`.
@@ -46,6 +47,29 @@ export async function updateSession(request: NextRequest) {
     pathname === "/auth/confirm" ||
     pathname.startsWith("/auth/confirm/");
 
+  const plantScopedPaths = ["/map", "/issues", "/dashboard", "/settings"] as const;
+  const requiresPlantSelection =
+    !!user &&
+    plantScopedPaths.some(
+      (p) => pathname === p || pathname.startsWith(`${p}/`),
+    );
+
+  if (requiresPlantSelection) {
+    const plantId = readSelectedPlantIdFromRequestCookies((name) =>
+      request.cookies.get(name)?.value,
+    );
+    if (!plantId) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/plants";
+      url.search = "";
+      const redirectResponse = NextResponse.redirect(url);
+      for (const c of supabaseResponse.cookies.getAll()) {
+        redirectResponse.cookies.set(c.name, c.value);
+      }
+      return redirectResponse;
+    }
+  }
+
   if (!isPublic && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -54,7 +78,7 @@ export async function updateSession(request: NextRequest) {
 
   if (pathname === "/login" && user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/map";
+    url.pathname = "/plants";
     url.search = "";
     const redirectResponse = NextResponse.redirect(url);
     for (const c of supabaseResponse.cookies.getAll()) {

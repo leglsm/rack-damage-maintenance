@@ -6,6 +6,10 @@ import { useSupabase } from "@/components/supabase-provider";
 import { registerChartJs } from "@/components/dashboard/register-charts";
 import { last12Months, monthKeyFromIso } from "@/lib/dashboard-time";
 import { formatNumberEnUS } from "@/lib/format-locale";
+import {
+  getFloorPlanIdForPlant,
+  getSelectedPlantIdFromDocument,
+} from "@/lib/selected-plant";
 
 registerChartJs();
 
@@ -128,12 +132,33 @@ export function DashboardView() {
     setError(null);
     setLoading(true);
     try {
+      const plantId = getSelectedPlantIdFromDocument();
+      const floorPlanId = plantId
+        ? await getFloorPlanIdForPlant(supabase, plantId)
+        : null;
+
+      if (!floorPlanId) {
+        setSpotterCount(0);
+        setIssues([]);
+        return;
+      }
+
+      const { data: spotRows, error: es } = await supabase
+        .from("spotters")
+        .select("id")
+        .eq("floor_plan_id", floorPlanId);
+      if (es) throw es;
+      const spotterIds = (spotRows ?? []).map((r) => r.id as string);
+
       const [{ count: sc, error: e0 }, { data: rows, error: e1 }] =
         await Promise.all([
           supabase
             .from("spotters")
-            .select("*", { count: "exact", head: true }),
-          supabase.from("issues").select(`
+            .select("*", { count: "exact", head: true })
+            .eq("floor_plan_id", floorPlanId),
+          spotterIds.length === 0
+            ? Promise.resolve({ data: [] as unknown[], error: null })
+            : supabase.from("issues").select(`
             id,
             component,
             priority,
@@ -145,7 +170,7 @@ export function DashboardView() {
               location_id,
               location_name
             )
-          `),
+          `).in("spotter_id", spotterIds),
         ]);
       if (e0) throw e0;
       if (e1) throw e1;

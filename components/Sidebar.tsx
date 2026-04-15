@@ -4,8 +4,17 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSupabase } from "@/components/supabase-provider";
+import {
+  clearSelectedPlantClient,
+  getSelectedPlantIdFromDocument,
+} from "@/lib/selected-plant";
 
 const navItems = [
+  {
+    href: "/plants",
+    label: "Plants",
+    icon: IconBuilding,
+  },
   {
     href: "/map",
     label: "Map",
@@ -33,6 +42,7 @@ export function Sidebar() {
   const router = useRouter();
   const supabase = useSupabase();
   const [email, setEmail] = useState<string | null>(null);
+  const [plantLabel, setPlantLabel] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,12 +60,42 @@ export function Sidebar() {
     };
   }, [supabase]);
 
+  useEffect(() => {
+    const plantId = getSelectedPlantIdFromDocument();
+    if (!plantId) {
+      setPlantLabel(null);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from("plants")
+      .select("name")
+      .eq("id", plantId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || !data) {
+          setPlantLabel(null);
+          return;
+        }
+        setPlantLabel(String((data as { name: string }).name ?? ""));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, pathname]);
+
   return (
     <aside className="flex h-full min-h-0 w-64 shrink-0 flex-col overflow-x-hidden border-r border-zinc-800 bg-[#141517]">
       <div className="shrink-0 border-b border-zinc-800 px-4 py-4">
         <span className="block text-sm font-semibold leading-snug tracking-tight text-white">
-          Opmobility Greer Rack Maintenance
+          Opmobility Rack Maintenance
         </span>
+        {plantLabel ? (
+          <span className="mt-1 block truncate text-xs text-zinc-500" title={plantLabel}>
+            {plantLabel}
+          </span>
+        ) : null}
       </div>
       <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
         {navItems.map(({ href, label, icon: Icon }) => {
@@ -88,6 +128,7 @@ export function Sidebar() {
           onClick={() => {
             if (!window.confirm("Sign out?")) return;
             void supabase.auth.signOut().then(() => {
+              clearSelectedPlantClient();
               router.push("/login");
               router.refresh();
             });
@@ -112,6 +153,26 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+  );
+}
+
+function IconBuilding({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+      aria-hidden
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"
+      />
+    </svg>
   );
 }
 
