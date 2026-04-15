@@ -36,6 +36,25 @@ Web application for **warehouse rack damage reporting and maintenance** across *
 
 Run the SQL in **`supabase/migrations/20260414120000_plants_one_floor_plan_per_plant.sql`** in the Supabase SQL Editor (creates `plants`, seeds names, adds `floor_plans.plant_id`, one plan per plant, and RLS on `plants`). Optionally align policies with **`supabase/enable-rls.sql`** for other tables.
 
+### Supabase CLI (optional)
+
+The repo includes **`supabase/config.toml`** from `supabase init`. Link your hosted project once (needs browser login + DB password you set in Supabase):
+
+```bash
+npm run db:login
+npm run db:link
+```
+
+`db:link` prompts for the **database password** (Settings → Database; reset there if you forgot). To pass it non-interactively (e.g. CI), use env `SUPABASE_ACCESS_TOKEN` after login, and `supabase link --project-ref <ref> -p "<password>"` — avoid committing passwords.
+
+Apply local migrations to the linked remote:
+
+```bash
+npm run db:push
+```
+
+Change **`project ref`** in `package.json` (`db:link` script) if you use a different Supabase project.
+
 ## Environment variables
 
 Create `.env.local` in the project root (never commit this file; it is gitignored):
