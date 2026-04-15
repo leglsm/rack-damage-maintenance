@@ -9,9 +9,10 @@
     "lint": "eslint",
     "db:login": "supabase login",
     "db:projects": "supabase projects list",
-    "db:link": "supabase link --project-ref eimwlllsldfewomctfrb",
+    "db:link": "supabase link --project-ref einwllffsfdfwewztfrb",
     "db:push": "supabase db push",
-    "db:diff": "supabase db diff"
+    "db:diff": "supabase db diff",
+    "db:schema-dump": "node -e \"require('fs').mkdirSync('supabase/snapshots',{recursive:true})\" && supabase db dump --linked -f supabase/snapshots/schema-remote.sql"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

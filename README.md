@@ -58,6 +58,18 @@ Apply local migrations to the linked remote:
 npm run db:push
 ```
 
+#### Schema snapshot (refactors, docs, sharing with AI)
+
+After `db:link`, dump the **linked remote** schema (tables, constraints, policies, etc.) to a local file:
+
+```bash
+npm run db:schema-dump
+```
+
+Writes **`supabase/snapshots/schema-remote.sql`** (gitignored by default). You may be prompted for the **database password** again. Open the file and paste **sanitized excerpts** into chat when you want help refactoring against the real DB shape.
+
+To **version** that file for your team, remove the `snapshots/schema-remote.sql` line from **`supabase/.gitignore`**.
+
 Change **`project ref`** in `package.json` (`db:link` script) if you use a different Supabase project.
 
 #### `db:link` → `Authorization failed` / `Not Found`
