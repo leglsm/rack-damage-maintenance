@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:login": "supabase login",
+    "db:projects": "supabase projects list",
     "db:link": "supabase link --project-ref eimwlllsldfewomctfrb",
     "db:push": "supabase db push",
     "db:diff": "supabase db diff"

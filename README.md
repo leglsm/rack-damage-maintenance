@@ -42,6 +42,11 @@ The repo includes **`supabase/config.toml`** from `supabase init`. Link your hos
 
 ```bash
 npm run db:login
+```
+
+When the CLI prints `Press Enter to open browser`, press **Enter**, finish login in the browser, then:
+
+```bash
 npm run db:link
 ```
 
@@ -54,6 +59,16 @@ npm run db:push
 ```
 
 Change **`project ref`** in `package.json` (`db:link` script) if you use a different Supabase project.
+
+#### `db:link` → `Authorization failed` / `Not Found`
+
+That response is from the **Management API** (before it asks for the DB password). Usually:
+
+1. **Wrong project ref** — In the dashboard, **Settings → General → Project ID** use **Copy**, then paste into `package.json`’s `db:link` script. Easy to mis-copy (`I` vs `l`, `0` vs `O`).
+2. **Wrong Supabase account** — Run `npm run db:projects` and confirm **rack-damage-maintenance** appears. If the list is empty or the project is missing, run `npm run db:login` again with the account that **owns** that project.
+3. **Debug** — `npm run db:link -- --debug`
+
+Do **not** paste CLI login URLs or verification codes into public chats; treat them like passwords.
 
 ## Environment variables
 
